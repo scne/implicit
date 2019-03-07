@@ -65,7 +65,7 @@ float warp_reduce_sum(float val) {
     return val;
 }
 
-__inline__ __device__
+/*__inline__ __device__
 float dot(const float * a, const float * b) {
     __syncthreads();
     static __shared__ float shared[32];
@@ -100,6 +100,23 @@ float dot(const float * a, const float * b) {
     }
     __syncthreads();
     return shared[0];
+}*/
+
+__inline__ __device__
+float dot(const float * a, const float * b) {
+    __syncthreads();
+
+    __shared__ float ret;
+    if (threadIdx.x == 0) {
+        ret = 0;
+    }
+    __syncthreads();
+
+    // The vast majority of time is spent in the next 'atomicAdd' line
+    atomicAdd(&ret, a[threadIdx.x] * b[threadIdx.x]);
+    __syncthreads();
+    return ret;
 }
+
 }  // namespace implicit
 #endif  // IMPLICIT_CUDA_UTILS_CUH_
