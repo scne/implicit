@@ -154,12 +154,11 @@ class MatrixFactorizationBase(RecommenderBase):
             liked.update(filter_items)
 
         count = N + len(liked)
-        # if count < len(scores):
-        #     ids = np.argpartition(scores, -count)[-count:]
-        #     best = sorted(zip(ids, scores[ids]), key=lambda x: -x[1])
-        # else:
-        #     best = sorted(enumerate(scores), key=lambda x: -x[1])
-        best = sorted(enumerate(scores), key=lambda x: -x[1])
+        if count < len(scores):
+            ids = np.argpartition(scores, -count)[-count:]
+            best = sorted(zip(ids, scores[ids]), key=lambda x: -x[1])
+        else:
+            best = sorted(enumerate(scores), key=lambda x: -x[1])
         return list(itertools.islice((rec for rec in best if rec[0] not in liked), N))
 
     def rank_items(self, userid, user_items, selected_items, recalculate_user=False):
