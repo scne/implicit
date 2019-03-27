@@ -70,11 +70,11 @@ class AlternatingLeastSquares(MatrixFactorizationBase):
         # currently there are some issues when training on the GPU when some of the warps
         # don't have full factors. Round up to be warp aligned.
         # TODO: figure out where the issue is (best guess is in the the 'dot' function in 'implicit/cuda/utils/cuh)
-        # if use_gpu and factors % 32:
-        #     padding = 32 - factors % 32
-        #     log.warning("GPU training requires factor size to be a multiple of 32."
-        #                 " Increasing factors from %i to %i.", factors, factors + padding)
-        #     factors += padding
+        if use_gpu and factors % 32:
+            padding = 32 - factors % 32
+            log.warning("GPU training requires factor size to be a multiple of 32."
+                        " Increasing factors from %i to %i.", factors, factors + padding)
+            factors += padding
 
         # parameters on how to factorize
         self.factors = factors
