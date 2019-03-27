@@ -8,7 +8,7 @@ import tqdm
 import numpy as np
 import scipy
 import scipy.sparse
-
+import codecs
 import implicit.cuda
 
 from . import _als
@@ -173,6 +173,84 @@ class AlternatingLeastSquares(MatrixFactorizationBase):
 
         if self.calculate_training_loss:
             log.info("Final training loss %.4f", loss)
+
+    def fit_gpu(self, item_users, iters, users_gen, ratings_csc, titles, filename, show_progress=True):
+        Ciu = item_users
+        if not isinstance(Ciu, scipy.sparse.csr_matrix):
+            s = time.time()
+            log.debug("Converting input to CSR format")
+            Ciu = Ciu.tocsr()
+            log.debug("Converted input to CSR in %.3fs", time.time() - s)
+
+        if Ciu.dtype != np.float32:
+            Ciu = Ciu.astype(np.float32)
+
+        s = time.time()
+        Cui = Ciu.T.tocsr()
+        log.debug("Calculated transpose in %.3fs", time.time() - s)
+
+        items, users = Ciu.shape
+
+        s = time.time()
+        # Initialize the variables randomly if they haven't already been set
+        if self.user_factors is None:
+            self.user_factors = np.random.rand(users, self.factors).astype(self.dtype) * 0.01
+        if self.item_factors is None:
+            self.item_factors = np.random.rand(items, self.factors).astype(self.dtype) * 0.01
+
+        log.debug("Initialized factors in %s", time.time() - s)
+
+        # invalidate cached norms and squared factors
+        self._item_norms = None
+        self._YtY = None
+
+        """ specialized training on the gpu. copies inputs to/from cuda device """
+        if not implicit.cuda.HAS_CUDA:
+            raise ValueError("No CUDA extension has been built, can't train on GPU.")
+
+        if self.dtype == np.float64:
+            log.warning("Factors of dtype float64 aren't supported with gpu fitting. "
+                        "Converting factors to float32")
+            self.item_factors = self.item_factors.astype(np.float32)
+            self.user_factors = self.user_factors.astype(np.float32)
+
+        Ciu_gpu = implicit.cuda.CuCSRMatrix(Ciu)
+        Cui_gpu = implicit.cuda.CuCSRMatrix(Cui)
+        X = implicit.cuda.CuDenseMatrix(self.user_factors.astype(np.float32))
+        Y = implicit.cuda.CuDenseMatrix(self.item_factors.astype(np.float32))
+
+        solver = implicit.cuda.CuLeastSquaresSolver(self.factors)
+        log.debug("Running %i ALS iterations", self.iterations)
+        with tqdm.tqdm(total=self.iterations, disable=not show_progress) as progress:
+            for iteration in range(self.iterations):
+                s = time.time()
+                solver.least_squares(Cui_gpu, X, Y, self.regularization, self.cg_steps)
+                progress.update(.5)
+                solver.least_squares(Ciu_gpu, Y, X, self.regularization, self.cg_steps)
+                progress.update(.5)
+
+                if self.fit_callback:
+                    self.fit_callback(iteration, time.time() - s)
+
+                if self.calculate_training_loss:
+                    loss = solver.calculate_loss(Cui, X, Y, self.regularization)
+                    progress.set_postfix({"loss": loss})
+
+                if iteration in iters:
+                    X.to_host(self.user_factors)
+                    Y.to_host(self.item_factors)
+                    with codecs.open(filename, "w", "utf8") as o:
+                        for userid in users_gen:
+                            if ratings_csc.indptr[userid] != ratings_csc.indptr[userid + 1]:
+                                user = users_gen[userid]
+                                for other, score in self.recommend(userid, ratings_csc.transpose(), N=100):
+                                    o.write("%s\t%s\t%s\n" % (user, titles[other], score))
+
+        if self.calculate_training_loss:
+            log.info("Final training loss %.4f", loss)
+
+        X.to_host(self.user_factors)
+        Y.to_host(self.item_factors)
 
     def _fit_gpu(self, Ciu_host, Cui_host, show_progress=True):
         """ specialized training on the gpu. copies inputs to/from cuda device """
