@@ -130,7 +130,7 @@ void CudaLeastSquaresSolver::least_squares(const CudaCSRMatrix & Cui,
     // TODO: multi-gpu support
     int devId = device;
     CHECK_CUDA(cudaGetDevice(&devId));
-
+    cudaSetDevice(devId);
     int multiprocessor_count;
     CHECK_CUDA(cudaDeviceGetAttribute(&multiprocessor_count,
                                       cudaDevAttrMultiProcessorCount,
