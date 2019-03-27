@@ -239,7 +239,8 @@ class AlternatingLeastSquares(MatrixFactorizationBase):
                 if iteration in iters:
                     X.to_host(self.user_factors)
                     Y.to_host(self.item_factors)
-                    with codecs.open(filename, "w", "utf8") as o:
+                    filename_iter = format(filename, str(iteration))
+                    with codecs.open(filename_iter, "w", "utf8") as o:
                         for userid in users_gen:
                             if ratings_csc.indptr[userid] != ratings_csc.indptr[userid + 1]:
                                 user = users_gen[userid]
