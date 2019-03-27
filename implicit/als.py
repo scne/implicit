@@ -177,7 +177,7 @@ class AlternatingLeastSquares(MatrixFactorizationBase):
         if self.calculate_training_loss:
             log.info("Final training loss %.4f", loss)
 
-    def fit_gpu(self, item_users, iters, users_gen, ratings_csc, titles, filename, show_progress=True):
+    def fit_gpu(self, item_users, iters, users_gen, ratings_csc, titles, filename, device, show_progress=True):
         Ciu = item_users
         if not isinstance(Ciu, scipy.sparse.csr_matrix):
             s = time.time()
@@ -227,10 +227,9 @@ class AlternatingLeastSquares(MatrixFactorizationBase):
         with tqdm.tqdm(total=self.iterations, disable=not show_progress) as progress:
             for iteration in range(self.iterations):
                 s = time.time()
-                id = random.randint(0, 1)
-                solver.least_squares(Cui_gpu, X, Y, self.regularization, self.cg_steps, id)
+                solver.least_squares(Cui_gpu, X, Y, self.regularization, self.cg_steps, device)
                 progress.update(.5)
-                solver.least_squares(Ciu_gpu, Y, X, self.regularization, self.cg_steps, id)
+                solver.least_squares(Ciu_gpu, Y, X, self.regularization, self.cg_steps, device)
                 progress.update(.5)
 
                 if self.fit_callback:
