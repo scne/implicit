@@ -102,7 +102,8 @@ void CudaLeastSquaresSolver::least_squares(const CudaCSRMatrix & Cui,
                                            CudaDenseMatrix * X,
                                            const CudaDenseMatrix & Y,
                                            float regularization,
-                                           int cg_steps) const {
+                                           int cg_steps,
+                                           int device) const {
     int item_count = Y.rows, user_count = X->rows, factors = X->cols;
     if (X->cols != Y.cols) throw invalid_argument("X and Y should have the same number of columns");
     if (X->cols != YtY.cols) throw invalid_argument("Columns of X don't match number of factors");
@@ -127,7 +128,7 @@ void CudaLeastSquaresSolver::least_squares(const CudaCSRMatrix & Cui,
     CHECK_CUDA(cudaDeviceSynchronize());
 
     // TODO: multi-gpu support
-    int devId;
+    int devId = device;
     CHECK_CUDA(cudaGetDevice(&devId));
 
     int multiprocessor_count;

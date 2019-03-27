@@ -14,7 +14,8 @@ struct CudaLeastSquaresSolver {
     void least_squares(const CudaCSRMatrix & Cui,
                        CudaDenseMatrix * X, const CudaDenseMatrix & Y,
                        float regularization,
-                       int cg_steps) const;
+                       int cg_steps,
+                       int device) const;
 
     float calculate_loss(const CudaCSRMatrix & Cui,
                         const CudaDenseMatrix & X,

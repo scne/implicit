@@ -9,6 +9,9 @@ import numpy as np
 import scipy
 import scipy.sparse
 import codecs
+
+from numpy.random import random
+
 import implicit.cuda
 
 from . import _als
@@ -224,9 +227,10 @@ class AlternatingLeastSquares(MatrixFactorizationBase):
         with tqdm.tqdm(total=self.iterations, disable=not show_progress) as progress:
             for iteration in range(self.iterations):
                 s = time.time()
-                solver.least_squares(Cui_gpu, X, Y, self.regularization, self.cg_steps)
+                id = random.randint(0, 1)
+                solver.least_squares(Cui_gpu, X, Y, self.regularization, self.cg_steps, id)
                 progress.update(.5)
-                solver.least_squares(Ciu_gpu, Y, X, self.regularization, self.cg_steps)
+                solver.least_squares(Ciu_gpu, Y, X, self.regularization, self.cg_steps, id)
                 progress.update(.5)
 
                 if self.fit_callback:
@@ -274,9 +278,9 @@ class AlternatingLeastSquares(MatrixFactorizationBase):
         with tqdm.tqdm(total=self.iterations, disable=not show_progress) as progress:
             for iteration in range(self.iterations):
                 s = time.time()
-                solver.least_squares(Cui, X, Y, self.regularization, self.cg_steps)
+                solver.least_squares(Cui, X, Y, self.regularization, self.cg_steps, 0)
                 progress.update(.5)
-                solver.least_squares(Ciu, Y, X, self.regularization, self.cg_steps)
+                solver.least_squares(Ciu, Y, X, self.regularization, self.cg_steps, 0)
                 progress.update(.5)
 
                 if self.fit_callback:

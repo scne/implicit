@@ -25,7 +25,7 @@ cdef extern from "als.h" namespace "implicit" nogil:
     cdef cppclass CudaLeastSquaresSolver:
         CudaLeastSquaresSolver(int factors) except +
         void least_squares(const CudaCSRMatrix & Cui, CudaDenseMatrix * X,
-                           const CudaDenseMatrix & Y, float regularization, int cg_steps) except +
+                           const CudaDenseMatrix & Y, float regularization, int cg_steps, int device) except +
 
         float calculate_loss(const CudaCSRMatrix & Cui, const CudaDenseMatrix & X,
                              const CudaDenseMatrix & Y, float regularization) except +
@@ -97,9 +97,9 @@ cdef class CuLeastSquaresSolver(object):
         self.c_solver = new CudaLeastSquaresSolver(factors)
 
     def least_squares(self, CuCSRMatrix cui, CuDenseMatrix X, CuDenseMatrix Y,
-                      float regularization, int cg_steps):
+                      float regularization, int cg_steps, device):
         self.c_solver.least_squares(dereference(cui.c_matrix), X.c_matrix, dereference(Y.c_matrix),
-                                    regularization, cg_steps)
+                                    regularization, cg_steps, device)
 
     def calculate_loss(self, CuCSRMatrix cui, CuDenseMatrix X, CuDenseMatrix Y,
                        float regularization):
