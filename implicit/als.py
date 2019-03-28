@@ -66,6 +66,7 @@ class AlternatingLeastSquares(MatrixFactorizationBase):
                  iterations=15, calculate_training_loss=False, num_threads=0):
         super(AlternatingLeastSquares, self).__init__()
 
+        np.random.seed(42)
         # REMOVE THIS LIMITATION !!
         # currently there are some issues when training on the GPU when some of the warps
         # don't have full factors. Round up to be warp aligned.
